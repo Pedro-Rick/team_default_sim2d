@@ -221,6 +221,19 @@ Bhv_ChainAction::execute( PlayerAgent * agent )
     const Vector2D goal_pos = SP.theirTeamGoalPos();
     agent->setNeckAction( new Neck_TurnToReceiver( M_chain_graph ) );
 
+    if ( wm.self().isKickable()
+         && wm.self().pos().x > 31.0
+         && ( wm.self().pos().absY() > 9.0
+              || wm.getOpponentNearestToSelf( 10 ) )
+         && first_action.category() != CooperativeAction::Shoot
+         && first_action.category() != CooperativeAction::Pass )
+    {
+        dlog.addText( Logger::TEAM,
+                      __FILE__" (Bhv_ChainAction) release crowded final third" );
+        agent->debugClient().addMessage( "ReleaseFinal3rd" );
+        return false;
+    }
+
     switch ( first_action.category() ) {
     case CooperativeAction::Shoot:
         {

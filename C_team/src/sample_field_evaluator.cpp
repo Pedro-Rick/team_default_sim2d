@@ -107,6 +107,16 @@ SampleFieldEvaluator::operator()( const PredictState & state,
             result += 80.0;
         }
     }
+    else if ( ! path.empty()
+              && path.front().M_action
+              && ( path.front().M_action->category() == CooperativeAction::Hold
+                   || path.front().M_action->category() == CooperativeAction::Dribble )
+              && ball_pos.x > 32.0
+              && ball_pos.absY() > 8.0 )
+    {
+        // In the final third, avoid dying on the ball near the sideline/box edge.
+        result -= 220.0;
+    }
 
     return result;
 }
@@ -200,11 +210,16 @@ evaluate_state( const PredictState & state )
     point += ball_pos.x * 2.8;
     point += std::max( 0.0, 52.5 - goal_dist ) * 4.0;
     point += center_lane * 1.7;
+    point += std::max( 0.0, 16.0 - ball_pos.absY() ) * 2.8;
 
     if ( ball_pos.x > 30.0 )
     {
         point += ( ball_pos.x - 30.0 ) * 3.5;
         point += std::max( 0.0, 20.0 - ball_pos.absY() ) * 3.0;
+        if ( ball_pos.absY() > 18.0 )
+        {
+            point -= ( ball_pos.absY() - 18.0 ) * 10.0;
+        }
     }
     else if ( ball_pos.x < -25.0 )
     {

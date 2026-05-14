@@ -46,6 +46,7 @@
 
 #include <rcsc/common/logger.h>
 #include <rcsc/common/server_param.h>
+#include <rcsc/math_util.h>
 
 #include "neck_offensive_intercept_neck.h"
 
@@ -77,6 +78,72 @@ Bhv_BasicMove::execute( PlayerAgent * agent )
     const ServerParam & SP = ServerParam::i();
 
     const Vector2D ball_pos = wm.ball().pos();
+    const bool central_goal_danger
+        = ( ball_pos.x < SP.ourPenaltyAreaLineX() + 15.0
+            && ball_pos.absY() < SP.penaltyAreaHalfWidth() + 4.0
+            && ( wm.existKickableOpponent()
+                 || opp_min <= self_min + 3 ) );
+
+    if ( central_goal_danger )
+    {
+        const int unum = wm.self().unum();
+        Vector2D cover_point = Vector2D::INVALIDATED;
+
+        if ( unum == 2 )
+        {
+            // Left center back protects the central-left shooting lane.
+            cover_point.assign( -SP.pitchHalfLength() + 11.0, -4.8 );
+        }
+        else if ( unum == 3 )
+        {
+            // Right center back protects the central-right shooting lane.
+            cover_point.assign( -SP.pitchHalfLength() + 11.0, 4.8 );
+        }
+        else if ( unum == 6 )
+        {
+            // Defensive half sits in front of the box to block the square pass.
+            cover_point.assign( SP.ourPenaltyAreaLineX() + 3.0,
+                                bound( -8.0, ball_pos.y * 0.45, 8.0 ) );
+        }
+        else if ( unum == 4 && ball_pos.y < 4.0 )
+        {
+            cover_point.assign( -SP.pitchHalfLength() + 14.0, -12.0 );
+        }
+        else if ( unum == 5 && ball_pos.y > -4.0 )
+        {
+            cover_point.assign( -SP.pitchHalfLength() + 14.0, 12.0 );
+        }
+        else if ( ( unum == 7 || unum == 8 )
+                  && ball_pos.x > SP.ourPenaltyAreaLineX() - 2.0
+                  && ball_pos.x < SP.ourPenaltyAreaLineX() + 16.0 )
+        {
+            // One attacking half drops to deny the free receiver at the arc.
+            const double side = ( unum == 7 ? -1.0 : 1.0 );
+            cover_point.assign( SP.ourPenaltyAreaLineX() + 9.0,
+                                side * 8.5 );
+        }
+
+        if ( cover_point.isValid() )
+        {
+            dlog.addText( Logger::TEAM,
+                          __FILE__": boss central box cover (%d) target=(%.1f %.1f)",
+                          unum, cover_point.x, cover_point.y );
+            agent->debugClient().addMessage( "BossCenterCover" );
+            agent->debugClient().setTarget( cover_point );
+            agent->debugClient().addCircle( cover_point, 0.8 );
+
+            if ( ! Body_GoToPoint( cover_point,
+                                   0.8,
+                                   SP.maxDashPower() ).execute( agent ) )
+            {
+                Body_TurnToBall().execute( agent );
+            }
+            agent->setNeckAction( new Neck_TurnToBall() );
+
+            return true;
+        }
+    }
+
     const bool deep_side_danger
         = ( ball_pos.x < SP.ourPenaltyAreaLineX() + 8.0
             && ball_pos.absY() > SP.goalHalfWidth() + 1.0
