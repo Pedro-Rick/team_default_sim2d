@@ -28,6 +28,8 @@
 
 #include "sample_field_evaluator.h"
 
+#include "action_state_pair.h"
+#include "cooperative_action.h"
 #include "field_analyzer.h"
 #include "simple_pass_checker.h"
 
@@ -79,11 +81,32 @@ SampleFieldEvaluator::~SampleFieldEvaluator()
  */
 double
 SampleFieldEvaluator::operator()( const PredictState & state,
-                                  const std::vector< ActionStatePair > & /*path*/ ) const
+                                  const std::vector< ActionStatePair > & path ) const
 {
     const double final_state_evaluation = evaluate_state( state );
 
     double result = final_state_evaluation;
+
+    const Vector2D ball_pos = state.ball().pos();
+    if ( ! path.empty()
+         && path.front().M_action
+         && path.front().M_action->category() == CooperativeAction::Pass )
+    {
+        // Prefer one/two-touch cutbacks into the central shooting lane.
+        if ( ball_pos.x > 30.0
+             && ball_pos.absY() < 22.0 )
+        {
+            result += 260.0;
+            result += std::max( 0.0, 18.0 - ball_pos.absY() ) * 12.0;
+            result += std::max( 0.0,
+                                30.0 - ServerParam::i().theirTeamGoalPos().dist( ball_pos ) ) * 18.0;
+        }
+
+        if ( path.size() <= 2 )
+        {
+            result += 80.0;
+        }
+    }
 
     return result;
 }
@@ -211,6 +234,12 @@ evaluate_state( const PredictState & state )
     if ( holder_unum >= 9 )
     {
         point += 35.0;
+    }
+    else if ( holder_unum >= 6
+              && ball_pos.x > 30.0
+              && ball_pos.absY() < 18.0 )
+    {
+        point += 90.0;
     }
     else if ( holder_unum <= 5 && ball_pos.x > 20.0 )
     {

@@ -74,6 +74,63 @@ Bhv_BasicMove::execute( PlayerAgent * agent )
     const int self_min = wm.interceptTable()->selfReachCycle();
     const int mate_min = wm.interceptTable()->teammateReachCycle();
     const int opp_min = wm.interceptTable()->opponentReachCycle();
+    const ServerParam & SP = ServerParam::i();
+
+    const Vector2D ball_pos = wm.ball().pos();
+    const bool deep_side_danger
+        = ( ball_pos.x < SP.ourPenaltyAreaLineX() + 8.0
+            && ball_pos.absY() > SP.goalHalfWidth() + 1.0
+            && ball_pos.absY() < SP.penaltyAreaHalfWidth() + 6.0
+            && ( wm.existKickableOpponent()
+                 || opp_min <= self_min + 2 ) );
+
+    if ( deep_side_danger )
+    {
+        const double side = ( ball_pos.y >= 0.0 ? 1.0 : -1.0 );
+        const int unum = wm.self().unum();
+        Vector2D cover_point = Vector2D::INVALIDATED;
+
+        if ( ( side > 0.0 && unum == 5 )
+             || ( side < 0.0 && unum == 4 ) )
+        {
+            // Same-side side back seals the byline/cutback lane.
+            cover_point.assign( -SP.pitchHalfLength() + 7.5,
+                                side * ( SP.goalHalfWidth() + 4.0 ) );
+        }
+        else if ( ( side > 0.0 && unum == 3 )
+                  || ( side < 0.0 && unum == 2 ) )
+        {
+            // Same-side center back protects the near post channel.
+            cover_point.assign( -SP.pitchHalfLength() + 4.5,
+                                side * ( SP.goalHalfWidth() + 0.8 ) );
+        }
+        else if ( unum == 6 )
+        {
+            // Defensive half blocks the pass back to the penalty spot.
+            cover_point.assign( SP.ourPenaltyAreaLineX() + 3.0,
+                                side * ( SP.goalHalfWidth() + 6.5 ) );
+        }
+
+        if ( cover_point.isValid() )
+        {
+            dlog.addText( Logger::TEAM,
+                          __FILE__": boss deep side cover (%d) target=(%.1f %.1f)",
+                          unum, cover_point.x, cover_point.y );
+            agent->debugClient().addMessage( "BossSideCover" );
+            agent->debugClient().setTarget( cover_point );
+            agent->debugClient().addCircle( cover_point, 0.7 );
+
+            if ( ! Body_GoToPoint( cover_point,
+                                   0.7,
+                                   SP.maxDashPower() ).execute( agent ) )
+            {
+                Body_TurnToBall().execute( agent );
+            }
+            agent->setNeckAction( new Neck_TurnToBall() );
+
+            return true;
+        }
+    }
 
     if ( wm.existKickableOpponent()
          && wm.ball().pos().x > -35.0

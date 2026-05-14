@@ -189,15 +189,15 @@ Bhv_GoalieBasicMove::getTargetPoint( PlayerAgent * agent )
     if ( base_pos.x < -ServerParam::i().pitchHalfLength() + 8.0
          && base_pos.absY() > ServerParam::i().goalHalfWidth() + 2.0 )
     {
-        Vector2D target_point( base_move_x, ServerParam::i().goalHalfWidth() - 0.1 );
+        Vector2D target_point( danger_move_x, ServerParam::i().goalHalfWidth() + 0.001 );
         if ( base_pos.y < 0.0 )
         {
             target_point.y *= -1.0;
         }
 
         dlog.addText( Logger::TEAM,
-                      __FILE__": getTarget. target is goal pole" );
-        agent->debugClient().addMessage( "Pos(1)" );
+                      __FILE__": getTarget. seal near post deep side" );
+        agent->debugClient().addMessage( "NearPostSeal" );
 
         return target_point;
     }
