@@ -29,6 +29,7 @@
 #endif
 
 #include "bhv_basic_offensive_kick.h"
+#include "body_force_shoot.h"
 
 #include <rcsc/action/body_advance_ball.h>
 #include <rcsc/action/body_dribble.h>
@@ -173,10 +174,14 @@ Bhv_BasicOffensiveKick::execute( PlayerAgent * agent )
             const int max_dash_step
                 = wm.self().playerType()
                 .cyclesToReachDistance( wm.self().pos().dist( drib_target ) );
-            if ( wm.self().pos().x > 35.0 )
+           if ( wm.self().pos().x > 35.0
+                && wm.self().pos().absY() < 18.0
+                && Body_ForceShoot().execute( agent ) )
             {
-                drib_target.y *= ( 10.0 / drib_target.absY() );
+                agent->setNeckAction( new Neck_ScanField() );
+                return true;
             }
+
 
             dlog.addText( Logger::TEAM,
                           __FILE__": (execute) fast dribble to (%.1f, %.1f) max_step=%d",
@@ -207,7 +212,7 @@ Bhv_BasicOffensiveKick::execute( PlayerAgent * agent )
     }
 
     // opp is far from me
-    if ( nearest_opp_dist > 5.0 )
+    if ( nearest_opp_dist > 4.0 )
     {
         dlog.addText( Logger::TEAM,
                       __FILE__": opp far. dribble(%.1f, %.1f)",

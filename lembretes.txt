@@ -1,0 +1,27 @@
+- lembrar de configurar tudo
+ 
+- iniciar server
+	terminal 1) 
+	entrar no dir do serveer e digitar: rcssserver
+
+- iniciar monitor
+	terminal 2) 
+	entrar no dir do serveer e digitar: rcssmonitor
+
+- iniciar time A
+	terminal 3) 
+	entrar no time, entrar no src e digitar:
+	./start.sh -t NomeTime1
+
+	se der erro: -bash: ./start.sh: Permission denied
+	rode: chmod +x start.sh ; chmod +x sample_player e chmod +x sample_coach
+	e depois tenta dnv
+
+- iniciar time B
+	terminal 4) 
+	entrar no time, entrar no src e digitar:
+	./start.sh -t NomeTime2
+
+- iniciando a partida
+	após os times entrarem em campo va até a tela do monitor e aperte ctrl+k
+
